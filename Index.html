@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GTA-Style 3D Player & Camera</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; user-select: none; }
+    #hud {
+      position: absolute; top: 15px; left: 15px;
+      background: rgba(15, 15, 20, 0.75); color: #fff;
+      padding: 14px 18px; border-radius: 8px; pointer-events: none;
+      border-left: 4px solid #2ecc71; line-height: 1.5; font-size: 14px;
+    }
+    #crosshair {
+      position: absolute; top: 50%; left: 50%;
+      width: 6px; height: 6px; background: white;
+      border-radius: 50%; transform: translate(-50%, -50%);
+      box-shadow: 0 0 4px rgba(0,0,0,0.8);
+      display: none; pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <strong>Click screen to play (ESC to unlock mouse)</strong><br />
+    <b>WASD:</b> Move | <b>Shift:</b> Sprint | <b>Space:</b> Jump<br />
+    <b>Mouse:</b> Orbit Camera | <b>Right-Click (Hold):</b> Aim | <b>Scroll:</b> Zoom
+  </div>
+  <div id="crosshair"></div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    // 1. SCENE & RENDERER
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.Fog(0x87ceeb, 30, 120);
+
+    const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    // 2. LIGHTING
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+    sun.position.set(20, 40, 20);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    scene.add(sun);
+
+    // 3. CITY-STYLE GROUND & BLOCKS (For movement reference)
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(200, 200),
+      new THREE.MeshStandardMaterial({ color: 0x333333 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+    scene.add(new THREE.GridHelper(200, 100, 0x555555, 0x444444));
+
+    // Add random buildings/pillars so you can feel speed & camera depth
+    const boxGeo = new THREE.BoxGeometry(4, 8, 4);
+    const boxMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d });
+    for (let i = 0; i < 25; i++) {
+      const building = new THREE.Mesh(boxGeo, boxMat);
+      building.position.set(
+        (Math.random() - 0.5) * 140,
+        4,
+        (Math.random() - 0.5) * 140
+      );
+      if (building.position.length() > 10) { // Keep spawn clear
+        building.castShadow = true;
+        building.receiveShadow = true;
+        scene.add(building);
+      }
+    }
+
+    // 4. PLAYER CHARACTER (With a visor so you can see which way they face)
+    const player = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.45, 1.0, 4, 8),
+      new THREE.MeshStandardMaterial({ color: 0x2ecc71 })
+    );
+    body.position.y = 0.95;
+    body.castShadow = true;
+    player.add(body);
+
+    const visor = new THREE.Mesh(
+      new THREE.BoxGeometry(0.5, 0.2, 0.3),
+      new THREE.MeshStandardMaterial({ color: 0x111111 })
+    );
+    visor.position.set(0, 1.45, 0.4); // Front of player (+Z)
+    player.add(visor);
+    scene.add(player);
+
+    // 5. GTA CONTROLS & CAMERA STATE
+    const keys = {};
+    let yaw = Math.PI;     // Camera horizontal angle
+    let pitch = 0.25;      // Camera vertical angle
+    let targetDist = 6.5;  // Desired zoom distance
+    let currentDist = 6.5; // Smoothly interpolated zoom
+    let isAiming = false;
+    let velocityY = 0;
+    let isGrounded = true;
+
+    const crosshair = document.getElementById('crosshair');
+
+    // Smooth camera pivot target (lags slightly behind player like GTA)
+    const cameraPivot = new THREE.Vector3(0, 1.5, 0);
+
+    window.addEventListener('keydown', (e) => (keys[e.code] = true));
+    window.addEventListener('keyup', (e) => (keys[e.code] = false));
+
+    // Prevent right-click context menu
+    window.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    document.body.addEventListener('mousedown', (e) => {
+      if (document.pointerLockElement !== document.body) {
+        document.body.requestPointerLock();
+      }
+      if (e.button === 2) { // Right-click to aim
+        isAiming = true;
+        crosshair.style.display = 'block';
+      }
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (e.button === 2) {
+        isAiming = false;
+        crosshair.style.display = 'none';
+      }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (document.pointerLockElement === document.body) {
+        const sensitivity = isAiming ? 0.0018 : 0.003;
+        yaw -= e.movementX * sensitivity;
+        pitch += e.movementY * sensitivity;
+        pitch = Math.max(-0.2, Math.min(Math.PI / 2.2, pitch));
+      }
+    });
+
+    window.addEventListener('wheel', (e) => {
+      targetDist += e.deltaY * 0.005;
+      targetDist = Math.max(3, Math.min(12, targetDist));
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Helper for smooth angle interpolation (prevents 360-degree spin glitch)
+    function lerpAngle(a, b, t) {
+      const diff = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI;
+      return a + (diff < -Math.PI ? diff + Math.PI * 2 : diff) * t;
+    }
+
+    // 6. MAIN LOOP
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.1);
+
+      // Movement speeds (Walk, Sprint, Aim-Strafe)
+      const isSprinting = (keys['ShiftLeft'] || keys['ShiftRight']) && !isAiming;
+      const moveSpeed = isAiming ? 4.5 : (isSprinting ? 13.0 : 7.0);
+
+      // Forward & Right vectors relative to camera
+      const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+      const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+      const moveDir = new THREE.Vector3();
+
+      if (keys['KeyW']) moveDir.add(forward);
+      if (keys['KeyS']) moveDir.sub(forward);
+      if (keys['KeyD']) moveDir.add(right);
+      if (keys['KeyA']) moveDir.sub(right);
+
+      if (moveDir.lengthSq() > 0) {
+        moveDir.normalize();
+        player.position.addScaledVector(moveDir, moveSpeed * dt);
+
+        // If NOT aiming, smoothly turn player toward movement direction
+        if (!isAiming) {
+          const targetRotation = Math.atan2(moveDir.x, moveDir.z);
+          player.rotation.y = lerpAngle(player.rotation.y, targetRotation, 12 * dt);
+        }
+      }
+
+      // If AIMING, player always faces where the camera is looking (GTA Strafe mode)
+      if (isAiming) {
+        const aimAngle = yaw + Math.PI;
+        player.rotation.y = lerpAngle(player.rotation.y, aimAngle, 20 * dt);
+      }
+
+      // Jump & Gravity
+      if (keys['Space'] && isGrounded) {
+        velocityY = 10.5;
+        isGrounded = false;
+      }
+      velocityY -= 26 * dt;
+      player.position.y += velocityY * dt;
+
+      if (player.position.y <= 0) {
+        player.position.y = 0;
+        velocityY = 0;
+        isGrounded = true;
+      }
+
+      // Dynamic FOV boost when sprinting
+      const targetFOV = isAiming ? 45 : (isSprinting && moveDir.lengthSq() > 0 ? 75 : 65);
+      camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 8 * dt);
+      camera.updateProjectionMatrix();
+
+      // Smoothly lag the camera pivot behind the player
+      const desiredPivot = new THREE.Vector3(
+        player.position.x,
+        player.position.y + 1.6,
+        player.position.z
+      );
+
+      // Shift pivot to the right shoulder when aiming
+      if (isAiming) {
+        desiredPivot.addScaledVector(right, 0.85);
+      }
+      cameraPivot.lerp(desiredPivot, 15 * dt);
+
+      // Smoothly adjust camera distance (zoom in when aiming)
+      const desiredDistance = isAiming ? 2.4 : targetDist;
+      currentDist = THREE.MathUtils.lerp(currentDist, desiredDistance, 10 * dt);
+
+      // Position camera in orbit around the lagged pivot
+      camera.position.x = cameraPivot.x + currentDist * Math.sin(yaw) * Math.cos(pitch);
+      camera.position.y = cameraPivot.y + currentDist * Math.sin(pitch);
+      camera.position.z = cameraPivot.z + currentDist * Math.cos(yaw) * Math.cos(pitch);
+
+      // Prevent camera from clipping below the ground
+      if (camera.position.y < 0.3) camera.position.y = 0.3;
+
+      camera.lookAt(cameraPivot);
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
