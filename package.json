@@ -1,0 +1,15 @@
+{
+  "name": "san-andreas-ethiopia",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "node --check server.js src/main.js src/world/ethiopiaMap.js src/entities/player.js src/entities/vehicles.js src/entities/npcs.js src/systems/cheats.js src/systems/missions.js src/systems/audio.js src/ui/hud.js",
+    "lint": "node --check server.js src/main.js src/world/ethiopiaMap.js src/entities/player.js src/entities/vehicles.js src/entities/npcs.js src/systems/cheats.js src/systems/missions.js src/systems/audio.js src/ui/hud.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
