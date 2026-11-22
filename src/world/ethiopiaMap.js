@@ -1,54 +1,63 @@
 import * as THREE from 'three';
 
 export const ZONES = [
-  { name: 'Meskel Square, Addis Ababa', x: 0, z: 0, radius: 75, color: '#334155' },
-  { name: 'Bole Avenue, Addis Ababa', x: 110, z: -40, radius: 70, color: '#1e3a8a' },
-  { name: 'Merkato District, Addis Ababa', x: -110, z: 40, radius: 70, color: '#78350f' },
-  { name: 'Adama Rift Avenue', x: 180, z: 160, radius: 85, color: '#9a3412' },
-  { name: 'Bahir Dar & Lake Tana', x: -180, z: -170, radius: 90, color: '#0369a1' },
-  { name: 'Hawassa Waterfront', x: 0, z: 210, radius: 85, color: '#0f766e' },
-  { name: 'Dire Dawa & Harar Gate', x: 220, z: -180, radius: 85, color: '#a16207' }
+  { name: 'Meskel Square, Addis Ababa', x: 0, z: 0, radius: 85 },
+  { name: 'Bole Neon Strip, Addis Ababa', x: 110, z: -70, radius: 80 },
+  { name: 'Merkato Market, Addis Ababa', x: -110, z: -60, radius: 80 },
+  { name: 'Adama Palm Boulevard', x: 240, z: 200, radius: 100 },
+  { name: 'Lake Tana, Bahir Dar', x: -250, z: -230, radius: 110 },
+  { name: 'Lake Hawassa Marina', x: -20, z: 250, radius: 100 },
+  { name: 'Harar Jugol & Dire Dawa', x: 260, z: -210, radius: 100 }
 ];
 
-export const ROAD_POSITIONS = [-180, -110, 0, 110, 180];
+export const LAKES = [
+  { name: 'Lake Tana', x: -310, z: -280, radius: 95 },
+  { name: 'Lake Hawassa', x: -20, z: 330, radius: 90 }
+];
+
+export function isInLake(x, z) {
+  return LAKES.some((lake) => Math.hypot(x - lake.x, z - lake.z) < lake.radius);
+}
 
 export function buildEthiopiaMap(scene) {
-  // Ground
-  const groundMat = new THREE.MeshLambertMaterial({ color: 0x4d7c0f });
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), groundMat);
+  // Terrain
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(1200, 1200),
+    new THREE.MeshLambertMaterial({ color: 0x365314 })
+  );
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
 
-  // Lake Tana & Lake Hawassa water planes
-  const waterMat = new THREE.MeshLambertMaterial({ color: 0x0284c7 });
-  const lakeTana = new THREE.Mesh(new THREE.CircleGeometry(65, 24), waterMat);
-  lakeTana.rotation.x = -Math.PI / 2;
-  lakeTana.position.set(-220, 0.08, -200);
-  scene.add(lakeTana);
-
-  const lakeHawassa = new THREE.Mesh(new THREE.CircleGeometry(60, 24), waterMat);
-  lakeHawassa.rotation.x = -Math.PI / 2;
-  lakeHawassa.position.set(0, 0.08, 265);
-  scene.add(lakeHawassa);
-
-  // Road Network
-  const roadMat = new THREE.MeshLambertMaterial({ color: 0x1f2937 });
-  function buildRoad(x, z, w, d) {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), roadMat);
-    m.rotation.x = -Math.PI / 2;
-    m.position.set(x, 0.05, z);
-    scene.add(m);
+  // Lake Tana & Lake Hawassa
+  const waterMat = new THREE.MeshPhongMaterial({ color: 0x06b6d4, shininess: 90 });
+  for (const lake of LAKES) {
+    const mesh = new THREE.Mesh(new THREE.CircleGeometry(lake.radius, 32), waterMat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(lake.x, 0.12, lake.z);
+    scene.add(mesh);
   }
 
-  ROAD_POSITIONS.forEach((pos) => {
-    buildRoad(pos, 0, 16, 560);
-    buildRoad(0, pos, 560, 16);
-  });
+  // Highway Grid
+  const roadMat = new THREE.MeshLambertMaterial({ color: 0x18181b });
+  function addRoad(x, z, w, l, rot = 0) {
+    const r = new THREE.Mesh(new THREE.PlaneGeometry(w, l), roadMat);
+    r.rotation.x = -Math.PI / 2;
+    r.rotation.z = rot;
+    r.position.set(x, 0.06, z);
+    scene.add(r);
+  }
+  addRoad(0, 0, 18, 720);
+  addRoad(0, 0, 720, 18);
+  addRoad(110, -70, 14, 280);
+  addRoad(-110, -60, 14, 280);
+  addRoad(120, 100, 16, 380, -0.78);
+  addRoad(-125, -115, 16, 380, 0.78);
+  addRoad(130, -105, 16, 380, -0.68);
 
-  // Meskel Square Central Monument & Ethiopian Flag Banners
+  // Meskel Square Central Plaza & Ethiopian Flag Monument
   const plaza = new THREE.Mesh(
     new THREE.CylinderGeometry(24, 24, 0.25, 32),
-    new THREE.MeshLambertMaterial({ color: 0x64748b })
+    new THREE.MeshLambertMaterial({ color: 0x334155 })
   );
   plaza.position.set(0, 0.12, 0);
   scene.add(plaza);
@@ -63,37 +72,46 @@ export function buildEthiopiaMap(scene) {
     scene.add(band);
   });
 
-  // Procedural City Buildings
+  // Neon-lit Ethiopian Buildings
   const colliders = [];
-  function spawnBuilding(x, z, w, h, d, color) {
-    const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(w, h, d),
-      new THREE.MeshLambertMaterial({ color })
-    );
-    mesh.position.set(x, h / 2, z);
-    scene.add(mesh);
-    colliders.push({ x, z, hw: w / 2 + 1.2, hd: d / 2 + 1.2 });
-  }
+  const neonTrimColors = [0xff4ecd, 0x38bdf8, 0xfacc15, 0x4ade80];
+  ZONES.forEach((z, idx) => {
+    for (let i = 0; i < 12; i++) {
+      const ang = (i / 12) * Math.PI * 2;
+      const dist = 34 + (i % 3) * 20;
+      const bx = z.x + Math.cos(ang) * dist;
+      const bz = z.z + Math.sin(ang) * dist;
+      if (Math.abs(bx) < 18 || Math.abs(bz) < 18) continue;
 
-  const palette = [0xd97706, 0x2563eb, 0x475569, 0xb45309, 0x0f766e, 0x9ca3af];
-  for (let gx = -220; gx <= 220; gx += 45) {
-    for (let gz = -220; gz <= 220; gz += 45) {
-      if (Math.abs(gx) < 32 && Math.abs(gz) < 32) continue;
-      if (Math.abs(gx % 110) < 18 || Math.abs(gz % 110) < 18) continue;
-      if (Math.abs(gx) < 18 || Math.abs(gz) < 18) continue;
-      const h = 10 + (Math.abs(gx * 7 + gz * 13) % 28);
-      const col = palette[Math.abs(gx + gz) % palette.length];
-      spawnBuilding(gx, gz, 18, h, 18, col);
+      const w = 10 + (i % 3) * 3;
+      const d = 10 + ((i + 1) % 3) * 3;
+      const h = 14 + ((i + idx) % 5) * 7;
+
+      const building = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
+        new THREE.MeshLambertMaterial({ color: i % 2 === 0 ? 0xf8fafc : 0xfde68a })
+      );
+      building.position.set(bx, h / 2, bz);
+      scene.add(building);
+
+      const neon = new THREE.Mesh(
+        new THREE.BoxGeometry(w + 0.4, 0.6, d + 0.4),
+        new THREE.MeshBasicMaterial({ color: neonTrimColors[(i + idx) % neonTrimColors.length] })
+      );
+      neon.position.set(bx, h + 0.2, bz);
+      scene.add(neon);
+
+      colliders.push({ x: bx, z: bz, h, hw: w / 2 + 0.9, hd: d / 2 + 0.9 });
     }
-  }
+  });
 
   // Entoto Mountains Backdrop
-  for (let i = -3; i <= 3; i++) {
+  for (let i = -4; i <= 4; i++) {
     const hill = new THREE.Mesh(
-      new THREE.ConeGeometry(75, 95, 7),
-      new THREE.MeshLambertMaterial({ color: 0x365314 })
+      new THREE.ConeGeometry(80, 105, 7),
+      new THREE.MeshLambertMaterial({ color: 0x1e293b })
     );
-    hill.position.set(i * 110, 45, -330);
+    hill.position.set(i * 120, 48, -420);
     scene.add(hill);
   }
 

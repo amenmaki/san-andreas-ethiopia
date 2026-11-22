@@ -1,18 +1,24 @@
 export function createAudioSystem(state) {
   let audioCtx = null;
-  let radioInterval = null;
+  let radioTimer = null;
   const radioBtn = document.getElementById('toggle-radio');
 
-  function toggleRadio() {
-    state.radioOn = !state.radioOn;
-    radioBtn.textContent = state.radioOn ? 'RADIO: ON (ETHIO-JAZZ)' : 'RADIO: OFF';
+  const LABELS = [
+    '📻 RADIO: OFF',
+    '📻 FLASH FM (80s)',
+    '📻 FEVER 105 (ETHIO)'
+  ];
 
-    if (radioInterval) {
-      clearInterval(radioInterval);
-      radioInterval = null;
+  function cycleRadio() {
+    state.radioStation = (state.radioStation + 1) % 3;
+    radioBtn.textContent = LABELS[state.radioStation];
+
+    if (radioTimer) {
+      clearInterval(radioTimer);
+      radioTimer = null;
     }
 
-    if (state.radioOn) {
+    if (state.radioStation > 0) {
       if (!audioCtx) {
         const Ctx = window.AudioContext || window.webkitAudioContext;
         if (Ctx) audioCtx = new Ctx();
@@ -22,26 +28,29 @@ export function createAudioSystem(state) {
         audioCtx.resume().catch(() => {});
       }
 
-      // Ethio-jazz pentatonic-inspired synth groove
-      const scale = [220, 246.94, 261.63, 329.63, 349.23, 440];
+      const notes =
+        state.radioStation === 1
+          ? [261.6, 329.6, 392.0, 523.2]
+          : [220, 261.6, 329.6, 349.2, 440];
       let step = 0;
-      radioInterval = setInterval(() => {
-        if (!state.radioOn || !audioCtx) return;
+
+      radioTimer = setInterval(() => {
+        if (state.radioStation === 0 || !audioCtx) return;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = scale[(step * 3) % scale.length];
-        gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+        osc.type = state.radioStation === 1 ? 'sawtooth' : 'triangle';
+        osc.frequency.value = notes[step % notes.length];
+        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.28);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
-        osc.stop(audioCtx.currentTime + 0.36);
+        osc.stop(audioCtx.currentTime + 0.3);
         step++;
-      }, 380);
+      }, 320);
     }
   }
 
-  radioBtn.onclick = toggleRadio;
-  return { toggleRadio };
+  radioBtn.onclick = cycleRadio;
+  return { cycleRadio };
 }

@@ -3,17 +3,23 @@ import * as THREE from 'three';
 export function createPlayer(scene) {
   const player = new THREE.Group();
 
-  const bodyMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(1.1, 1.8, 0.7),
-    new THREE.MeshLambertMaterial({ color: 0x16a34a })
+  const shirt = new THREE.Mesh(
+    new THREE.BoxGeometry(1.0, 1.4, 0.6),
+    new THREE.MeshLambertMaterial({ color: 0x06b6d4 })
   );
-  bodyMesh.position.y = 1.4;
+  shirt.position.y = 1.6;
 
-  const headMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(0.75, 0.75, 0.75),
-    new THREE.MeshLambertMaterial({ color: 0x78350f })
+  const jeans = new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 1.0, 0.55),
+    new THREE.MeshLambertMaterial({ color: 0x1e3a8a })
   );
-  headMesh.position.y = 2.75;
+  jeans.position.y = 0.5;
+
+  const head = new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.7, 0.7),
+    new THREE.MeshLambertMaterial({ color: 0x6b4423 })
+  );
+  head.position.y = 2.65;
 
   const jetpackMesh = new THREE.Mesh(
     new THREE.BoxGeometry(0.8, 1.1, 0.45),
@@ -22,8 +28,8 @@ export function createPlayer(scene) {
   jetpackMesh.position.set(0, 1.6, -0.5);
   jetpackMesh.visible = false;
 
-  player.add(bodyMesh, headMesh, jetpackMesh);
-  player.position.set(0, 0, 28);
+  player.add(shirt, jeans, head, jetpackMesh);
+  player.position.set(0, 0, 24);
   scene.add(player);
 
   return {
@@ -38,16 +44,16 @@ export function updatePlayer(playerObj, state, input, colliders, dt) {
   const player = playerObj.mesh;
   player.rotation.y += input.turnInput * 2.8 * dt;
 
-  const walkSpeed = (input.isSprint ? 15 : 8.5) * input.moveForward;
-  const nx = player.position.x + Math.sin(player.rotation.y) * walkSpeed * dt;
-  const nz = player.position.z + Math.cos(player.rotation.y) * walkSpeed * dt;
+  const spd = (input.isSprint ? 16 : 9) * input.moveForward;
+  const nx = player.position.x + Math.sin(player.rotation.y) * spd * dt;
+  const nz = player.position.z + Math.cos(player.rotation.y) * spd * dt;
 
   const blocked = colliders.some(
-    (c) => Math.abs(nx - c.x) < c.hw && Math.abs(nz - c.z) < c.hd
+    (c) => player.position.y < c.h && Math.abs(nx - c.x) < c.hw && Math.abs(nz - c.z) < c.hd
   );
   if (!blocked) {
-    player.position.x = nx;
-    player.position.z = nz;
+    player.position.x = Math.max(-560, Math.min(560, nx));
+    player.position.z = Math.max(-560, Math.min(560, nz));
   }
 
   if (state.jetpack && input.isJump) {

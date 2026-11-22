@@ -3,209 +3,251 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>GTA: San Andreas — Ethiopia Edition</title>
-  <meta name="description" content="A browser and mobile-friendly 3D open-world action game set across iconic Ethiopian cities and highways." />
-  <meta property="og:title" content="GTA: San Andreas — Ethiopia Edition" />
-  <meta property="og:description" content="A browser and mobile-friendly 3D open-world action game set across iconic Ethiopian cities and highways." />
+  <title>Vice City: Ethiopia Edition — San Andreas Ethiopia</title>
+  <meta name="description" content="A browser and mobile-friendly 3D open-world action game set across iconic Ethiopian cities with an interactive in-game smartphone, vehicles, and cheats." />
+  <meta property="og:title" content="Vice City: Ethiopia Edition" />
+  <meta property="og:description" content="3D open-world Ethiopian city action game with interactive smartphone, neon vehicles, radio stations, and cheats." />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a0a; font-family: 'Impact', 'Arial Black', sans-serif; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #090414; font-family: 'Impact', 'Arial Black', sans-serif; }
     #gameCanvas { display: block; width: 100vw; height: 100vh; }
 
-    /* San Andreas Top-Right HUD */
-    #sa-hud {
+    /* Vice City Neon Top-Right HUD */
+    #vc-hud {
       position: fixed; top: 14px; right: 16px; z-index: 20;
-      display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
       pointer-events: none;
     }
     .hud-top-row { display: flex; align-items: center; gap: 10px; }
     #weapon-box {
-      width: 54px; height: 54px; border: 3px solid #000; background: rgba(0,0,0,0.65);
+      width: 58px; height: 58px; border: 3px solid #ff4ecd;
+      background: rgba(18, 6, 36, 0.82); box-shadow: 0 0 12px rgba(255, 78, 205, 0.5);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      color: #fff; font-size: 11px; letter-spacing: 0.5px; text-align: center;
+      color: #fff; border-radius: 6px;
     }
-    #weapon-icon { font-size: 22px; line-height: 1; }
-    #weapon-ammo { font-family: Arial, sans-serif; font-weight: bold; font-size: 10px; color: #ddd; }
-    .bars-col { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    #weapon-icon { font-size: 24px; line-height: 1; }
+    #weapon-name { font-family: Arial, sans-serif; font-weight: bold; font-size: 9px; color: #38bdf8; margin-top: 2px; }
+    .bars-col { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
     #clock-display {
-      color: #e2e8f0; font-size: 20px; text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
+      color: #38bdf8; font-size: 20px; text-shadow: 2px 2px 0 #000, 0 0 8px #0284c7;
       letter-spacing: 1px;
     }
     #money-display {
-      color: #2e8b57; font-size: 24px; text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
+      color: #4ade80; font-size: 24px; text-shadow: 2px 2px 0 #000;
       letter-spacing: 1px;
     }
+    .stat-row { display: flex; align-items: center; gap: 6px; }
+    .stat-label { font-size: 11px; color: #ff4ecd; text-shadow: 1px 1px 0 #000; font-family: Arial, sans-serif; }
     .stat-bar-wrap {
-      width: 130px; height: 12px; background: #1a1a1a; border: 2px solid #000; padding: 1px;
+      width: 115px; height: 11px; background: #140824; border: 2px solid #000;
     }
-    #health-bar { width: 100%; height: 100%; background: #b91c1c; transition: width 0.15s; }
-    #armor-bar { width: 50%; height: 100%; background: #e5e7eb; transition: width 0.15s; }
+    #health-bar { width: 100%; height: 100%; background: #ff4ecd; transition: width 0.15s; }
+    #armor-bar { width: 50%; height: 100%; background: #38bdf8; transition: width 0.15s; }
     #wanted-stars {
       font-size: 20px; letter-spacing: 2px; text-shadow: 2px 2px 0 #000;
-      color: rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.2);
     }
-    #wanted-stars .active { color: #facc15; }
+    #wanted-stars .active { color: #38bdf8; text-shadow: 0 0 8px #38bdf8, 2px 2px 0 #000; }
 
-    /* Bottom-Left Radar Minimap */
+    /* Bottom-Left Neon Radar */
     #radar-wrap {
       position: fixed; bottom: 16px; left: 16px; z-index: 20;
-      width: 126px; height: 126px; border-radius: 50%;
-      border: 4px solid #111; box-shadow: 0 0 0 2px #555;
-      overflow: hidden; background: #1e293b; pointer-events: none;
+      width: 124px; height: 124px; border-radius: 50%;
+      border: 4px solid #ff4ecd; box-shadow: 0 0 14px rgba(255, 78, 205, 0.55);
+      overflow: hidden; background: #0f0722; pointer-events: none;
     }
     #radarCanvas { width: 100%; height: 100%; display: block; }
 
-    /* San Andreas Notifications & Location Banner */
+    /* Notifications & Vice City Neon Banners */
     #cheat-banner {
-      position: fixed; top: 56px; left: 16px; z-index: 30;
-      background: rgba(0, 0, 0, 0.85); color: #fff;
-      padding: 10px 14px; border-left: 4px solid #facc15;
-      font-family: Arial, Helvetica, sans-serif; font-size: 13px; font-weight: bold;
-      max-width: 260px; display: none;
+      position: fixed; top: 58px; left: 16px; z-index: 30;
+      background: rgba(15, 5, 30, 0.92); color: #fff;
+      padding: 9px 14px; border: 2px solid #38bdf8;
+      font-family: Arial, sans-serif; font-size: 13px; font-weight: bold;
+      max-width: 280px; display: none; border-radius: 6px;
     }
     #location-banner {
-      position: fixed; bottom: 154px; right: 20px; z-index: 25;
-      color: #fff; font-size: 26px; font-style: italic;
-      text-shadow: 3px 3px 0 #000, -1px -1px 0 #000;
-      opacity: 0; transition: opacity 0.5s; pointer-events: none;
-      text-align: right;
+      position: fixed; bottom: 158px; right: 18px; z-index: 25;
+      color: #ff4ecd; font-size: 24px; font-style: italic;
+      text-shadow: 2px 2px 0 #000, 0 0 10px rgba(255, 78, 205, 0.6);
+      opacity: 0; transition: opacity 0.5s; pointer-events: none; text-align: right;
+    }
+    #vehicle-banner {
+      position: fixed; bottom: 190px; right: 18px; z-index: 25;
+      color: #38bdf8; font-size: 18px; font-style: italic;
+      text-shadow: 2px 2px 0 #000; display: none; pointer-events: none; text-align: right;
     }
     #mission-banner {
-      position: fixed; top: 32%; left: 50%; transform: translate(-50%, -50%);
+      position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%);
       z-index: 35; text-align: center; pointer-events: none; display: none;
     }
     #mission-banner h2 {
-      font-size: 36px; color: #facc15; text-shadow: 3px 3px 0 #000; letter-spacing: 2px;
+      font-size: 36px; color: #ff4ecd; text-shadow: 3px 3px 0 #000, 0 0 15px #ff4ecd; letter-spacing: 1px;
     }
     #mission-banner p {
-      font-size: 22px; color: #fff; text-shadow: 2px 2px 0 #000; margin-top: 4px;
+      font-size: 22px; color: #38bdf8; text-shadow: 2px 2px 0 #000; margin-top: 4px;
     }
 
-    /* Top Utility Buttons (Cheats, Radio, Weapon) */
+    /* Top Left Bar */
     #top-controls {
-      position: fixed; top: 14px; left: 16px; z-index: 25;
-      display: flex; gap: 8px; flex-wrap: wrap;
+      position: fixed; top: 14px; left: 16px; z-index: 25; display: flex; gap: 8px; flex-wrap: wrap; max-width: 60vw;
     }
     .util-btn {
-      background: rgba(0,0,0,0.75); color: #fff; border: 2px solid #64748b;
+      background: rgba(18, 6, 36, 0.85); color: #fff; border: 2px solid #ff4ecd;
       padding: 7px 11px; border-radius: 6px; font-family: Arial, sans-serif;
       font-weight: bold; font-size: 12px; cursor: pointer;
     }
-    .util-btn:active { background: #facc15; color: #000; }
+    .util-btn:active { background: #ff4ecd; color: #000; }
 
-    /* Mobile / Tablet Touch Controls */
+    /* Mobile / Tablet Controls (Positioned above radar so phones never overlap) */
     #joystick-zone {
-      position: fixed; bottom: 155px; left: 22px; width: 120px; height: 120px;
-      border-radius: 50%; background: rgba(255,255,255,0.12);
-      border: 2px solid rgba(255,255,255,0.3); z-index: 25; touch-action: none;
+      position: fixed; bottom: 152px; left: 20px; width: 115px; height: 115px;
+      border-radius: 50%; background: rgba(255, 78, 205, 0.14);
+      border: 2px solid rgba(56, 189, 248, 0.45); z-index: 25; touch-action: none;
     }
     #joystick-knob {
-      position: absolute; top: 35px; left: 35px; width: 50px; height: 50px;
-      border-radius: 50%; background: rgba(255,255,255,0.55); pointer-events: none;
+      position: absolute; top: 32px; left: 32px; width: 48px; height: 48px;
+      border-radius: 50%; background: rgba(255, 255, 255, 0.65); pointer-events: none;
     }
     #action-buttons {
       position: fixed; bottom: 18px; right: 18px; z-index: 25;
-      display: grid; grid-template-columns: repeat(2, 62px); gap: 10px;
+      display: grid; grid-template-columns: repeat(2, 60px); gap: 9px;
     }
     .act-btn {
-      width: 62px; height: 62px; border-radius: 50%;
-      background: rgba(15, 23, 42, 0.78); border: 2px solid rgba(255,255,255,0.45);
-      color: #fff; font-family: Arial, sans-serif; font-weight: bold; font-size: 11px;
+      width: 60px; height: 60px; border-radius: 50%;
+      background: rgba(18, 6, 36, 0.82); border: 2px solid #38bdf8;
+      color: #fff; font-family: Arial, sans-serif; font-weight: bold; font-size: 10px;
       display: flex; align-items: center; justify-content: center; text-align: center;
       touch-action: manipulation; cursor: pointer;
     }
-    .act-btn:active { background: #16a34a; border-color: #fff; transform: scale(0.95); }
-    #btn-attack { background: rgba(185, 28, 28, 0.8); }
-    #btn-car { background: rgba(29, 78, 216, 0.8); }
+    .act-btn:active { background: #ff4ecd; transform: scale(0.94); }
+    #btn-attack { border-color: #ff4ecd; background: rgba(190, 24, 93, 0.82); }
+    #btn-car { border-color: #4ade80; background: rgba(21, 128, 61, 0.82); }
 
-    /* Cheat Pad Modal */
-    #cheat-modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.82); z-index: 50;
-      display: none; align-items: center; justify-content: center; padding: 16px;
+    /* IN-GAME SMARTPHONE UI */
+    #phone-overlay {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.68); z-index: 60;
+      display: none; align-items: center; justify-content: center; padding: 12px;
     }
-    #cheat-panel {
-      background: #111827; border: 2px solid #facc15; border-radius: 10px;
-      width: 100%; max-width: 420px; padding: 18px; color: #fff;
-      font-family: Arial, sans-serif;
+    #smartphone {
+      width: 310px; height: 530px; max-height: 92vh; background: #0f172a;
+      border: 4px solid #ff4ecd; border-radius: 28px;
+      box-shadow: 0 0 30px rgba(255, 78, 205, 0.65);
+      display: flex; flex-direction: column; overflow: hidden;
+      font-family: Arial, sans-serif; color: #fff;
     }
-    #cheat-panel h3 { color: #facc15; margin-bottom: 10px; font-size: 18px; }
-    .cheat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-    .cheat-code-btn {
-      background: #1f2937; border: 1px solid #4b5563; color: #fff;
-      padding: 9px; border-radius: 6px; text-align: left; font-size: 12px; cursor: pointer;
+    #phone-notch {
+      background: #1e1b4b; padding: 8px 14px; display: flex;
+      justify-content: space-between; font-size: 11px; color: #38bdf8; font-weight: bold;
     }
-    .cheat-code-btn strong { display: block; color: #4ade80; font-size: 13px; }
-    #close-cheats {
-      width: 100%; padding: 10px; background: #dc2626; color: #fff;
-      border: none; border-radius: 6px; font-weight: bold; cursor: pointer;
+    #phone-screen {
+      flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
+    }
+    .phone-tabs {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+    }
+    .p-tab {
+      background: #1e293b; border: 1px solid #38bdf8; color: #fff;
+      padding: 6px 2px; font-size: 10px; font-weight: bold; border-radius: 6px; cursor: pointer;
+    }
+    .p-tab.active { background: #ff4ecd; border-color: #ff4ecd; color: #000; }
+    #phone-body { display: flex; flex-direction: column; gap: 8px; }
+    .phone-card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+      padding: 9px; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .phone-card b { font-size: 12px; color: #f8fafc; display: block; }
+    .phone-card small { font-size: 10px; color: #94a3b8; }
+    .phone-act {
+      background: #16a34a; border: none; color: #fff; padding: 6px 10px;
+      border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; flex-shrink: 0;
+    }
+    .phone-act.pink { background: #db2777; }
+    .phone-act.blue { background: #0284c7; }
+    #dialer-input {
+      width: 100%; padding: 8px; background: #020617; border: 1px solid #38bdf8;
+      color: #4ade80; font-weight: bold; text-transform: uppercase; border-radius: 6px;
+      user-select: text; -webkit-user-select: text;
+    }
+    #phone-home-btn {
+      background: #1e1b4b; border: none; border-top: 1px solid #334155;
+      color: #ff4ecd; padding: 10px; font-weight: bold; font-size: 12px; cursor: pointer;
     }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
 
-  <!-- Top Left Utility Controls -->
+  <!-- Top Left Controls -->
   <div id="top-controls">
-    <button class="util-btn" id="open-cheats">CHEATS</button>
-    <button class="util-btn" id="toggle-radio">RADIO: OFF</button>
-    <button class="util-btn" id="switch-weapon">WEAPON</button>
+    <button class="util-btn" id="open-phone">📱 PHONE</button>
+    <button class="util-btn" id="toggle-radio">📻 RADIO: OFF</button>
+    <button class="util-btn" id="switch-weapon">🔫 WEAPON</button>
   </div>
 
-  <div id="cheat-banner">Cheat activated</div>
+  <div id="cheat-banner">CHEAT ACTIVATED</div>
 
-  <!-- San Andreas Top-Right HUD -->
-  <div id="sa-hud">
+  <!-- Vice City Neon Top-Right HUD -->
+  <div id="vc-hud">
     <div class="hud-top-row">
       <div class="bars-col">
-        <div id="clock-display">12:00</div>
-        <div id="money-display">$00000500</div>
-        <div class="stat-bar-wrap"><div id="health-bar"></div></div>
-        <div class="stat-bar-wrap"><div id="armor-bar"></div></div>
+        <div id="clock-display">20:30</div>
+        <div id="money-display">$00001000</div>
+        <div class="stat-row">
+          <span class="stat-label">♥</span>
+          <div class="stat-bar-wrap"><div id="health-bar"></div></div>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">🛡</span>
+          <div class="stat-bar-wrap"><div id="armor-bar"></div></div>
+        </div>
       </div>
       <div id="weapon-box">
         <div id="weapon-icon">👊</div>
-        <div id="weapon-ammo">FIST</div>
+        <div id="weapon-name">FIST</div>
       </div>
     </div>
     <div id="wanted-stars">★★★★★★</div>
   </div>
 
-  <!-- Bottom-Left Radar -->
+  <!-- Radar Minimap -->
   <div id="radar-wrap">
     <canvas id="radarCanvas" width="140" height="140"></canvas>
   </div>
 
-  <!-- Location & Mission Banners -->
   <div id="location-banner">Meskel Square, Addis Ababa</div>
+  <div id="vehicle-banner">Infernus Supercar</div>
   <div id="mission-banner">
     <h2 id="mission-title">MISSION PASSED!</h2>
-    <p id="mission-reward">RESPECT + $1,500</p>
+    <p id="mission-reward">+$2,500</p>
   </div>
 
-  <!-- Mobile / Tablet Touch Controls -->
+  <!-- Touch Controls -->
   <div id="joystick-zone"><div id="joystick-knob"></div></div>
   <div id="action-buttons">
     <div class="act-btn" id="btn-car">ENTER<br>CAR</div>
     <div class="act-btn" id="btn-jump">JUMP /<br>FLY</div>
-    <div class="act-btn" id="btn-sprint">SPRINT /<br>NITRO</div>
+    <div class="act-btn" id="btn-sprint">SPRINT /<br>TURBO</div>
     <div class="act-btn" id="btn-attack">ATTACK /<br>FIRE</div>
   </div>
 
-  <!-- Cheat Pad Modal -->
-  <div id="cheat-modal">
-    <div id="cheat-panel">
-      <h3>SAN ANDREAS ETHIOPIA — CHEAT PAD</h3>
-      <div class="cheat-grid">
-        <button class="cheat-code-btn" data-code="HESOYAM"><strong>HESOYAM</strong>Health, Armor, Repair +$250k</button>
-        <button class="cheat-code-btn" data-code="ROCKETMAN"><strong>ROCKETMAN</strong>Toggle Jetpack</button>
-        <button class="cheat-code-btn" data-code="UZUMYMW"><strong>UZUMYMW</strong>Heavy Weapons Pack</button>
-        <button class="cheat-code-btn" data-code="AEZAKMI"><strong>AEZAKMI</strong>Never Wanted Toggle</button>
-        <button class="cheat-code-btn" data-code="BRINGITON"><strong>BRINGITON</strong>6-Star Wanted Level</button>
-        <button class="cheat-code-btn" data-code="JUMPJET"><strong>JUMPJET</strong>Spawn Fighter Jet</button>
-        <button class="cheat-code-btn" data-code="RIPAZHA"><strong>RIPAZHA</strong>Flying Cars Toggle</button>
-        <button class="cheat-code-btn" data-code="YSOHNUL"><strong>YSOHNUL</strong>Turbo Clock Speed</button>
+  <!-- IN-GAME SMARTPHONE -->
+  <div id="phone-overlay">
+    <div id="smartphone">
+      <div id="phone-notch">
+        <span>ETHIO-NET 5G</span>
+        <span id="phone-time">20:30</span>
       </div>
-      <button id="close-cheats">RESUME GAME</button>
+      <div id="phone-screen">
+        <div class="phone-tabs">
+          <button class="p-tab active" data-tab="missions">JOBS</button>
+          <button class="p-tab" data-tab="garage">CARS</button>
+          <button class="p-tab" data-tab="cheats">CHEATS</button>
+          <button class="p-tab" data-tab="save">SAVE</button>
+        </div>
+        <div id="phone-body"></div>
+      </div>
+      <button id="phone-home-btn">CLOSE PHONE</button>
     </div>
   </div>
 
